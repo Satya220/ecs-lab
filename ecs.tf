@@ -71,9 +71,10 @@ resource "aws_ecs_task_definition" "service" {
   container_definitions = jsonencode([
     {
       name      = "1st"
-      image     = "httpd"
-      # cpu       = 10
-      # memory    = 512
+      image     = "153707729340.dkr.ecr.us-east-1.amazonaws.com/first:latest"
+      cpu       = 1
+      memory    = 512
+      network_mode = "awsvpc"
       essential = true
       portMappings = [
         {
@@ -95,17 +96,17 @@ resource "aws_ecs_task_definition" "service" {
   }
 }
 
-resource "aws_ecs_task_set" "example" {
-  service         = aws_ecs_service.web-ecs.id
-  cluster         = aws_ecs_cluster.test.id
-  task_definition = aws_ecs_task_definition.service.arn
+# resource "aws_ecs_task_set" "example" {
+#   service         = aws_ecs_service.web-ecs.id
+#   cluster         = aws_ecs_cluster.test.id
+#   task_definition = aws_ecs_task_definition.service.arn
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.test.arn
-    container_name   = "1st"
-    container_port   = 80
-  }
-}
+#   load_balancer {
+#     target_group_arn = aws_lb_target_group.test.arn
+#     container_name   = "1st"
+#     container_port   = 80
+#   }
+# }
 
 resource "aws_kms_key" "example" {
   description             = "key_for_ecs"
@@ -155,9 +156,9 @@ resource "aws_ecs_service" "web-ecs" {
   cluster         = aws_ecs_cluster.test.id
   task_definition = aws_ecs_task_definition.service.arn
   desired_count   = 3
-  iam_role        = "arn:aws:iam::153707729340:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS"
+  # iam_role        = "arn:aws:iam::153707729340:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS"
   # depends_on      = "arn:aws:iam::aws:policy/aws-service-role/AmazonECSServiceRolePolicy"
-  launch_type =  "EC2"
+  # launch_type =  "EC2"
 
   ordered_placement_strategy {
     type  = "binpack"
@@ -174,6 +175,13 @@ resource "aws_ecs_service" "web-ecs" {
     type       = "memberOf"
     expression = "attribute:ecs.availability-zone in [us-west-2a, us-west-2b]"
   }
+
+
+  capacity_provider_strategy{
+  base = 1
+  capacity_provider = "test"
+  weight = 100
+}
 }
 
 ##IAM ROLE
@@ -288,7 +296,7 @@ resource "aws_iam_role" "exec_role" {
   }
 }
 
-resource "aws_iam_role_policy_attachment" "test-attach" {
+resource "aws_iam_role_policy_attachment" "tp-attach" {
   role       = aws_iam_role.exec_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
